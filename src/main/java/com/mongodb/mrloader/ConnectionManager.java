@@ -86,6 +86,7 @@ public class ConnectionManager {
 				
 				
 				// Connect using the supplied URI to the config DB
+				String mongosDomain = config.get(CFG_MONGOS_DOMAIN, "");
 				MongoClient client = new MongoClient(rawUri);
 				DBCollection mongosColl = client.getDB(CONFIG_DB_NAME).
 						getCollection(MONGOS_COLL_NAME);
@@ -95,6 +96,13 @@ public class ConnectionManager {
 				mongos = mongosColl.find(new BasicDBObject(), new BasicDBObject("_id", true));
 				while(mongos.hasNext()){
 					String host = (String) mongos.next().get("_id");
+					if(mongosDomain.isEmpty() == false){
+						String[] hostPort = host.split(":");					
+						host = hostPort[0] + "." + mongosDomain;
+						if(hostPort.length == 2){
+							host = host + ":" + hostPort[1];
+						}
+					}
 					System.out.println("Adding discovered mongos : " + host);
 					hostList.add(host);
 				}

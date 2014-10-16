@@ -21,7 +21,8 @@ public class LoaderConfiguration {
 	public static final String CFG_RETRY_COUNT 	= "retry_count";
 	public static final String CFG_PARSER 		= "parser_class";
 	public static final String CFG_PARSE_ONLY 	= "parse_only";
-		
+	public static final String CFG_MONGOS_DOMAIN = "mongos_domain";
+			
 	// Computed job configuration
 	public static final String CFG_MONGOS_LIST 	= "mongos_list";
 	public static final String CFG_DATABASE 	= "database";
@@ -48,6 +49,7 @@ public class LoaderConfiguration {
 		options.addOption(CFG_JOB_NAME, true, "name of the map-reduce job");
 		options.addOption(CFG_RETRY_COUNT, true, "number of retry attempts for failed batches");
 		options.addOption(CFG_PARSER, true, "name of class to use as BSON parser");
+		options.addOption(CFG_MONGOS_DOMAIN, true, "domain for mongos dns");
 		
 	
 		try{
