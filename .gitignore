@@ -6,5 +6,5 @@ target
 .settings
 data
 .DS_Store
-output
+temp
 
