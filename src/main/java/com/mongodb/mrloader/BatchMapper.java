@@ -48,9 +48,9 @@ public class BatchMapper extends Mapper<LongWritable, Text, IntWritable, IntWrit
 		try{
 			String parserClassName = config.get(CFG_PARSER, null);
 			if(parserClassName != null){
-				this.parser = DEFAULT_PARSER.newInstance();
-			} else {
 				this.parser = (BSONGenerator) Class.forName(parserClassName).newInstance();
+			} else {
+				this.parser = DEFAULT_PARSER.newInstance();
 			}
 			this.parser.setup(context);
 		} catch(Exception ex) {
