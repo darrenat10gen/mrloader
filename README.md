@@ -95,6 +95,7 @@ The EMR loader requires that you specify a database and collection for the docue
 * Optionally, presplit the collection 
 * Optionally, turn off balancing (if the inserted data will be well distributed by shard key)
 
+```
     mongos> use demodb
     switched to db demodb
     mongos> db.adminCommand({enableSharding: "demodb"})
@@ -140,6 +141,7 @@ The EMR loader requires that you specify a database and collection for the docue
     Waiting again for active hosts after balancer is off...
     mongos> exit
     bye
+```
 
 ## Running the EMR Job
 
