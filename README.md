@@ -1,5 +1,6 @@
-MrLoader - Elastic MapReduce Loader for MongoDB
-===============================================
+MrLoader
+========
+##Elastic MapReduce Loader for MongoDB
 
 MrLoader is a framework for using Amazon Elastic MapReduce to load raw data files stored in S3 into MongoDB. 
 
@@ -78,12 +79,75 @@ Now use the AWS CLI to copy the JAR to our S3 bucket
 
     ~/mrloader$ aws s3 cp ./target/mrloader.jar $MRLOADER_S3_ROOT/jars/
 
+### Configuring the MongoDB Cluster
+
+While this is not intended to be a guide for setting up a MongoDB cluster, its a good idea to perform a few basic checks from the controller before attempting to run the EMR job against it. For a standalone or small replica set, you may choose to manually create EC2 instances in the VPC, then install and run MongoDB. An easier approach, especially for larger clusters, is to use the [MongoDB Management Service](mms.mongodb.com) to provision, deploy and manage the cluster from a single console.
+
+Once you have the MongoDB deployment up and running, you can install the MongoDB Client Tools on the controller and connect to the cluster (this example is a cluster with a mongos running on 10.0.0.249:27017) :
+
+    ~$ sudo apt-get install mongodb-clients
+    ~$ mongo 10.0.0.249
+
+The EMR loader requires that you specify a database and collection for the docuements to be loaded into. If the collection will be sharded, this is a good time to :
+
+* Choose the database name and enable sharding
+* Choose the collection name, a shard key and enable sharding
+* Optionally, presplit the collection 
+* Optionally, turn off balancing (if the inserted data will be well distributed by shard key)
+
+    mongos> use demodb
+    switched to db demodb
+    mongos> db.adminCommand({enableSharding: "demodb"})
+    { "ok" : 1 }
+    mongos> db.adminCommand({shardCollection: "demodb.mycoll", key: {chunk : "hashed"}, numInitialChunks : 160})
+    { "collectionsharded" : "demodb.mycoll", "ok" : 1 }
+    mongos> sh.status()
+    --- Sharding Status --- 
+      sharding version: {
+	"_id" : 1,
+	"version" : 4,
+	"minCompatibleVersion" : 4,
+	"currentVersion" : 5,
+	"clusterId" : ObjectId("544ec9ee55999a7f6a3272e9")
+      }
+      shards:
+	{  "_id" : "mrl-sh_0",  "host" : "mrl-sh_0/demo-1.mrloader.9833.mongodbdns.com:27000" }
+	{  "_id" : "mrl-sh_1",  "host" : "mrl-sh_1/demo-0.mrloader.9833.mongodbdns.com:27000" }
+	{  "_id" : "mrl-sh_2",  "host" : "mrl-sh_2/demo-1.mrloader.9833.mongodbdns.com:27001" }
+	{  "_id" : "mrl-sh_3",  "host" : "mrl-sh_3/demo-0.mrloader.9833.mongodbdns.com:27001" }
+	{  "_id" : "mrl-sh_4",  "host" : "mrl-sh_4/demo-1.mrloader.9833.mongodbdns.com:27002" }
+	{  "_id" : "mrl-sh_5",  "host" : "mrl-sh_5/demo-0.mrloader.9833.mongodbdns.com:27002" }
+	{  "_id" : "mrl-sh_6",  "host" : "mrl-sh_6/demo-1.mrloader.9833.mongodbdns.com:27003" }
+	{  "_id" : "mrl-sh_7",  "host" : "mrl-sh_7/demo-0.mrloader.9833.mongodbdns.com:27003" }
+      databases:
+	{  "_id" : "admin",  "partitioned" : false,  "primary" : "config" }
+	{  "_id" : "demodb",  "partitioned" : true,  "primary" : "mrl-sh_1" }
+		demodb.mycoll
+			shard key: { "chunk" : "hashed" }
+			chunks:
+				mrl-sh_1	20
+				mrl-sh_3	20
+				mrl-sh_5	20
+				mrl-sh_7	20
+				mrl-sh_0	20
+				mrl-sh_2	20
+				mrl-sh_4	20
+				mrl-sh_6	20
+			too many chunks to print, use verbose if you want to force print
+    mongos> sh.stopBalancer()
+    Waiting for active hosts...
+    Waiting for the balancer lock...
+    Waiting again for active hosts after balancer is off...
+    mongos> exit
+    bye
+
 ## Running the EMR Job
 
 
 
+Default #tasks per host
+http://docs.aws.amazon.com/ElasticMapReduce/latest/DeveloperGuide/TaskConfiguration.html
+
 http://docs.aws.amazon.com/ElasticMapReduce/latest/DeveloperGuide/emr-plan-vpc-subnet.html
 http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_Subnets.html
-https://media.amazonwebservices.com/AWS_Amazon_EMR_Best_Practices.pdf
-export MRLOADER_S3_ROOT=s3://dwood-hvdf
 
