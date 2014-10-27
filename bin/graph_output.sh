@@ -18,6 +18,7 @@ fi
 aws s3 cp $MRLOADER_S3_ROOT/output/$1/ $TEMP_DIR --recursive > /dev/null
 cat $TEMP_DIR/part* > $TEMP_DIR/merge.txt
 sort -n $TEMP_DIR/merge.txt > $1.sorted.txt
+export col2='$2'
 
 cat << EOF | gnuplot > $1.png
 set terminal png
@@ -29,10 +30,23 @@ set ytic auto
 set title "Batch Latency"
 set ylabel "# of batches"
 set xlabel "latency (ms)"
-set logscale y
+
+# function for cumulative total on y axis
+a=0
+cummulative_sum(x)=(a=a+x,a)
+
+# use stats to find, mark and label 95th percentile
+stats "$1.sorted.txt" 
+mark = (STATS_sum_y)*0.95
+set arrow 1 from graph 0.11,first mark to graph 1,first mark ls 1 nohead front
+set label "95th %" at 1.1,mark
+
+# Plot latency vs cumulative total on log scale
 set logscale x
-plot "$1.sorted.txt" using 1:2 title "$1"
+plot "$1.sorted.txt" using 1:(cummulative_sum($col2)) title "$1"
+
 EOF
 
 aws s3 cp $1.png $MRLOADER_S3_ROOT/graphs/ 
+
 
