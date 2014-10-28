@@ -95,14 +95,16 @@ The EMR loader requires that you specify a database and collection for the docue
 * Optionally, presplit the collection 
 * Optionally, turn off balancing (if the inserted data will be well distributed by shard key)
 
+Here is an example preparing an 8 shard cluster for the database *demodb* and the collection *mycoll* sharded by the *chunk* field :
+
 ```
-    mongos> use demodb
+mongos> use demodb
     switched to db demodb
-    mongos> db.adminCommand({enableSharding: "demodb"})
+mongos> db.adminCommand({enableSharding: "demodb"})
     { "ok" : 1 }
-    mongos> db.adminCommand({shardCollection: "demodb.mycoll", key: {chunk : "hashed"}, numInitialChunks : 160})
+mongos> db.adminCommand({shardCollection: "demodb.mycoll", key: {chunk : "hashed"}, numInitialChunks : 160})
     { "collectionsharded" : "demodb.mycoll", "ok" : 1 }
-    mongos> sh.status()
+mongos> sh.status()
     --- Sharding Status --- 
       sharding version: {
 	"_id" : 1,
@@ -135,17 +137,39 @@ The EMR loader requires that you specify a database and collection for the docue
 				mrl-sh_4	20
 				mrl-sh_6	20
 			too many chunks to print, use verbose if you want to force print
-    mongos> sh.stopBalancer()
+mongos> sh.stopBalancer()
     Waiting for active hosts...
     Waiting for the balancer lock...
     Waiting again for active hosts after balancer is off...
-    mongos> exit
+mongos> exit
     bye
 ```
 
 ## Running the EMR Job
 
+With the JAR file is deployed and the MongoDB cluster running, it is very easy to spin up a loader cluster from the [AWS EMR Console](console.aws.amazon.com/elasticmapreduce). Once you have run a job before already, you will be able to choose a previous run and clone the configuration to run a similar job. To create your first job, hit the "Create Cluster" button.
 
+You will need to name the cluster and point to your "logs" folder in the S3 bucket for logging output. Optionally, tag your cluster with something to make the EC2 instances associated with the cluster easy to identify :
+
+![alt text](doc/emr-setup-name.png "Create Cluster")
+
+Next, scroll to the software configuration and select the 2.4.8 AMI version (which mrloader.jar is built against), you may also delete PIG and HIVE applications as they are not required and take time to install and configure :
+
+![alt text](doc/emr-setup-software.png "Software Configuration")
+
+In the hardware configuration, specify the desired cluster size, typically a larger Master instance and as many core nodes as you wish. The more core nodes you configure, the more concurrent loaders will be deployed reading and inserting in parallel (see optional bootstrapping section for more information) :
+
+![alt text](doc/emr-setup-hardware.png "Hardware Configuration")
+
+Finally, at the "Steps" section choose *Custom JAR* from the *Add Step* dropdown and click *Configure and add*. You will be presented with the following form :
+
+![alt text](doc/emr-setup-jarstep.png "Add Step")
+
+Enter a name to identify the step and point to the S3 location of the uploaded JAR file. The mrloader.jar contains a main class that will be passed any arguments supplied here. Refer to the reference section for full usage, the required arguments shown here are :
+
+* *--mongos_uri* - A URI which conforms to the MongoDB Java Driver [MongoClientURI specification](http://api.mongodb.org/java/2.12/com/mongodb/MongoClientURI.html). The URI must contain a valid collection endpoint into which the data will be inserted. For our example, this points to the mongos instance and provides the correct database and collection.
+* *--input_uri* - The S3 location containing the input text files for the data load
+* *--output_uri* - The S3 location for the EMR job to write its output (by default MrLoader writes latency information for each insert batch). This path should be unique for each run to avoid the output of multiple runs overwriting each other.
 
 Default #tasks per host
 http://docs.aws.amazon.com/ElasticMapReduce/latest/DeveloperGuide/TaskConfiguration.html
