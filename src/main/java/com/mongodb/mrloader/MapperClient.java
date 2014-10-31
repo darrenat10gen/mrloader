@@ -61,6 +61,7 @@ public class MapperClient {
 		FileInputFormat.addInputPath(job, new Path(jobConfig.get(CFG_INPUT_URI)));
 		
 		String outputUri = jobConfig.get(CFG_OUTPUT_URI);
+		if(outputUri.endsWith("/") == false){ outputUri += "/"; };
 		if(jobId != null){ outputUri += jobId + "/"; }
 		System.out.println("Sending output to : " + outputUri);
 		FileOutputFormat.setOutputPath(job, new Path(outputUri));
