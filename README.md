@@ -20,7 +20,7 @@ While loading data does not initially seem like a good MapReduce use case, there
 
 ## Deployment Architecture
 
-![alt text](doc/architecture.png "Architecture")
+![alt text](doc/architecture.png?raw=true "Architecture")
 
 A typical deployment consists of 3 main components :
 
@@ -36,7 +36,7 @@ As previously mentioned, it is recommended (although not required) to run the en
 
 Next, you will need an S3 bucket in the same availability zone as the VPC hosting the rest of the system. This is easy to create via the S3 console or CLI. Although folders dont need to be precreated or named exactly as in the example below, some of the scripts and examples assume the bucket contains the folders shown here :
 
-![alt text](doc/s3-bucket-setup.png "S3 Bucket Setup")
+![alt text](doc/s3-bucket-setup.png?raw=true "S3 Bucket Setup")
 
 ### Setting up the Controller
 
@@ -151,19 +151,19 @@ With the JAR file deployed and the MongoDB cluster running, it is very easy to s
 
 You will need to name the cluster and point to your "logs" folder in the S3 bucket for logging output. Optionally, tag your cluster with something to make the EC2 instances associated with the cluster easy to identify :
 
-![alt text](doc/emr-setup-name.png "Create Cluster")
+![alt text](doc/emr-setup-name.png?raw=true "Create Cluster")
 
 Next, scroll to the software configuration and select the 2.4.8 AMI version (which mrloader.jar is built against), you may also delete PIG and HIVE applications as they are not required and only take time to install and configure :
 
-![alt text](doc/emr-setup-software.png "Software Configuration")
+![alt text](doc/emr-setup-software.png?raw=true "Software Configuration")
 
 In the hardware configuration, specify the VPC and Subnet details and the desired cluster size. The more core nodes you configure, the more concurrent loaders will be deployed reading and inserting in parallel (see optional bootstrapping section for more information) :
 
-![alt text](doc/emr-setup-hardware.png "Hardware Configuration")
+![alt text](doc/emr-setup-hardware.png?raw=true "Hardware Configuration")
 
 Finally, at the "Steps" section choose **Custom JAR** from the **Add Step** dropdown and click **Configure and add**. You will be presented with the following form :
 
-![alt text](doc/emr-setup-jarstep.png "Add Step")
+![alt text](doc/emr-setup-jarstep.png?raw=true "Add Step")
 
 Enter a name to identify the step and point to the S3 location of the uploaded JAR file. The MrLoader JAR contains a main class that will be passed any arguments supplied here. Refer to the reference section for full usage, the required arguments are :
 
@@ -177,19 +177,23 @@ After configuring the Custom JAR step, hit the **Create Cluster** button at the 
 
 Once the EMR Job starts, the console will show a details page which is updated with cluster status. Initially, the cluster will be provisioning and bootstrapping machines :
 
-![alt text](doc/emr-job-provisioning.png "Provisioning Cluster")
+![alt text](doc/emr-job-provisioning.png?raw=true "Provisioning Cluster")
 
 After the cluster is provisioned, it will move to the running state and begin executing the steps, including the loader job :
 
-![alt text](doc/emr-job-running.png "Running Cluster")
+![alt text](doc/emr-job-running.png?raw=true "Running Cluster")
 
 Under the **Map/Reduce** section, there are a series of stats that can be refreshed as the job runs. EMR will chunk large files into tasks and create tasks for smaller files, then generate a **Map Tasks Remaining** graph which will burn down to zero as the ob progresses :
 
-![alt text](doc/emr-mapreduce-stats.png "MapReduce Stats")
+![alt text](doc/emr-mapreduce-stats.png?raw=true "MapReduce Stats")
 
-At this time, you can also check that the target collection in MongoDB is receiving inserts. The [MongoDB Management Service](http://mms.mongodb.com) is a good way to confirm this, this is what the demo run looks like for a small MongoDB Cluster :
+At this time, you can also check that the target collection in MongoDB is receiving inserts. The [MongoDB Management Service](http://mms.mongodb.com) is a good way to confirm this, this is what the demo run looks like for a large MongoDB Cluster :
 
-![alt text](doc/mms-large-load.png "Loading 500,000 docs per seconds")
+![alt text](doc/mms-large-load.png?raw=true "Loading 500,000 docs per second")
+
+## Analyzing the Output
+
+
 
 ## Mongos Discovery
 
