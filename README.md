@@ -191,9 +191,40 @@ At this time, you can also check that the target collection in MongoDB is receiv
 
 ![alt text](doc/mms-large-load.png?raw=true "Loading 500,000 docs per second")
 
-## Analyzing the Output
+### Job Completion
 
+When all of the EMR tasks are complete, the job will terminate with a "Steps completes" status like this :
 
+![alt text](doc/emr-complete.png?raw=true "Success!")
+
+If there are any problems running the job (most likely due to an error in the loader step, the status will look like this :
+
+![alt text](doc/emr-errors.png?raw=true "Fail.")
+
+You can check if the loaders Custom JAR step has failed by looking at the "Steps" section. If the job failed in the early setup phase, the stderr logs available here may be useful, however deeper failures (inside the map/reduce implementations) will not show up here. The next section dicusses tools for aggregating logs and output from the worker nodes to diagnose such problems.
+
+## Analyzing Logs and Output
+
+Since the EMR job is run distributed across the cluster, each of the workers write partial files back to the **logs** and **output** directory of the S3 bucket. Typically, it is up to the EMR user to merge and analyze this information, however MrLoader provides some helper scripts to assist. 
+
+### get_stderr / get_stdout
+
+Given a job ID (found in the *Summary:ID* section of the *Cluster Details* page, with the format *j-XXXXXXXXXXXX*), these scripts will collect all and non-empty concatenate all non-empty stdout/err output from any of the task nodes. As a simple logging mechanism, the loader implementation writes informational messages to stdout and error details to stderr. Typically a call to **get_stderr.sh** which results in a no empty output file indicates a problem was encountered in at least one of the worker nodes.
+
+### graph_output
+
+By default, the loader implementation measures latency for every batch inserted and emits the value from the Map task. The Reducer simply sums the number of occurences, creating a data series of counts for each latency value. The output of the job is a series of files containing this data series found in the **output** directory in S3. The bin/graph_output.sh script pulls all of the result files from S3 and collates them into a single sorted series. This data is then fed to gnuplot to generate a graph showing the cumulative count of batches as the latency increases.
+
+    # if you dont have gnuplot already, it is required
+    ~/mrloader$ sudo apt-get install gnuplot-nox
+
+    ~/mrloader$ ./bin/graph_output.sh j-2DPH1NW1UK0IU
+
+This script should print some statistics about the data and then write a PNG file both locally and back to the S3 bucket in the *graphs* folder, where you can open and view something like this :
+
+![alt text](doc/graph-output.png?raw=true "Cumulative Batch Total as Latency Increases")
+
+From the graph we can see that 95% of batches have an insert latency as seen by the client of less than 100ms, however there are some outliers taking as long as 10s !
 
 ## Mongos Discovery
 
