@@ -88,7 +88,7 @@ Once you have the MongoDB deployment up and running, you can install the MongoDB
     ~$ sudo apt-get install mongodb-clients
     ~$ mongo 10.0.0.249
 
-The EMR loader requires that you specify a database and collection for the docuements to be loaded into. If the collection will be sharded, this is a good time to :
+The EMR loader requires that you specify a database and collection for the documents to be loaded into. If the collection will be sharded, this is a good time to :
 
 * Choose the database name and enable sharding
 * Choose the collection name, a shard key and enable sharding
@@ -209,7 +209,7 @@ Since the EMR job is run distributed across the cluster, each of the workers wri
 
 ### get_stderr / get_stdout
 
-Given a job ID (found in the *Summary:ID* section of the *Cluster Details* page, with the format *j-XXXXXXXXXXXX*), these scripts will collect all and non-empty concatenate all non-empty stdout/err output from any of the task nodes. As a simple logging mechanism, the loader implementation writes informational messages to stdout and error details to stderr. Typically a call to **get_stderr.sh** which results in a no empty output file indicates a problem was encountered in at least one of the worker nodes.
+Given a job ID (found in the *Summary:ID* section of the *Cluster Details* page, with the format *j-xxxxxxx*), these scripts will collect all and non-empty concatenate all non-empty stdout/err output from any of the task nodes. As a simple logging mechanism, the loader implementation writes informational messages to stdout and error details to stderr. Typically a call to **get_stderr.sh** which results in a no empty output file indicates a problem was encountered in at least one of the worker nodes.
 
 ### graph_output
 
@@ -228,12 +228,40 @@ From the graph we can see that 95% of batches have an insert latency as seen by 
 
 ## Mongos Discovery
 
+By default, MrLoader will attempt to discover all MongoDB **mongos** instances in the system and load balance the mapper workers across them during the load. Most of the time, this is the desired behavior, for example if you supply the following argument to the loader Custom JAR step :
+
+    --mongos_uri mongodb://10.0.0.249/demodb.mycoll
+
+... MrLoader will connect to the provided mongos endpoint and attempt to discover any others. Such attempts will appear the main stdout log for the Custom JAR step as follows :
+
+    Adding discovered mongos : demo-0.mrloader.9833:27017
+    Adding discovered mongos : demo-2.mrloader.9833:27017
+    Adding discovered mongos : demo-1.mrloader.9833:27017
+
+Note here that the discovered hostnames generally correspond to a "hostname" call on each of the mongos hosts. The hosts must be resolvable within the VPC by these names or the worker nodes will fail to connect to the cluster. In some circumstances, for example, "hostname" will return something like demo-0.mrloader.9833, however the host can only be resolved with the fully qualified version demo-0.mrloader.9833.mongodbdns.com. To resolve such issues, MrLoader has an optional argument to add a domain extension to the discovered hostnames as follows :
+
+    --mongos_uri mongodb://10.0.0.249/demodb.mycoll --mongos_domain mongodbdns.com
+
+If preferred, discovery can also be disabled and all mongos endpoints supplied in the URI as follows :
+
+   --mongos_uri mongodb://10.0.0.249,10.0.0.233/demodb.mycoll --no_discovery
+
+With these arguments, only the two specified mongos endpoints will be used by the cluster.
+
+## Custom Input Parsers
+
 ## JAR Argument Reference
 
---mongos_uri mongodb://10.0.0.249/demodb.mycoll --input_uri s3n://mrloader-demo/rawdata/ --output_uri s3n://mrloader-demo/output/ 
-Default #tasks per host
-http://docs.aws.amazon.com/ElasticMapReduce/latest/DeveloperGuide/TaskConfiguration.html
+    mongos_uri      - URI for at least one mongos (or mongod for standalone/replica set)
+    input_uri       - S3 URI for input data location, all files in this location will be read
+    output_uri      - S3 URI for the root output directory, the job ID will be added to this prefix
+    no_discovery    - Do not discover mongos instances, use only those specified
+    batch_size      - Number of records per MongoDB insert batch
+    job_name        - Customize job name
+    retry_count     - If batch insert fails, number of times to retry
+    parser_class    - Class to use for parsing lines of input file into MongoDB documents
+    parse_only      - Read and parse only, do not insert. For testing input side throughput
+    mongos_domain   - Add domain suffix to all discovered mongos hostnames
 
-http://docs.aws.amazon.com/ElasticMapReduce/latest/DeveloperGuide/emr-plan-vpc-subnet.html
-http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_Subnets.html
+
 
