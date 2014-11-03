@@ -11,9 +11,8 @@ TEMP_DIR=./temp/$1/out
 
 if [ -d "$TEMP_DIR" ]; then
    rm -R $TEMP_DIR
-else
-   mkdir -p $TEMP_DIR
 fi
+mkdir -p $TEMP_DIR
 
 aws s3 cp $MRLOADER_S3_ROOT/output/$1/ $TEMP_DIR --recursive > /dev/null
 cat $TEMP_DIR/part* > $TEMP_DIR/merge.txt

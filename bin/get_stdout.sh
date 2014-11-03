@@ -11,10 +11,9 @@ TEMP_DIR=./temp/$1/stdout
 
 if [ -d "$TEMP_DIR" ]; then
    rm -R $TEMP_DIR
-else
-   mkdir -p $TEMP_DIR
 fi
+mkdir -p $TEMP_DIR
 
-aws s3 cp $MRLOADER_S3_ROOT/log/$1/task-attempts/ $TEMP_DIR --recursive > /dev/null
+aws s3 cp $MRLOADER_S3_ROOT/logs/$1/task-attempts/ $TEMP_DIR --recursive > /dev/null
 find $TEMP_DIR -name stdout -size 1 | xargs cat > $1.stdout
 
