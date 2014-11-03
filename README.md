@@ -15,7 +15,7 @@ While loading data does not initially seem like a good MapReduce use case, there
 * It can handle data stored in thousands of smaller files or very large files and will automatically split and distribute them accordingly. 
 * It will provision, configure and run client clusters from 1 to 100's of machines from a single API call or point and click form.
 * It reads directly from S3, avoiding the need to transfer the input data to any storage medium directly attached to the nodes running the loader. S3 is a durable, secure and inexpensive way to store large volumes of input data. In addition, when the MrLoader EMR cluster is deployed into the same region as the input data S3 bucket, there are currently no AWS (transfer) charges for reading the data into the cluster.
-* EMR configures itelf in minutes and automatically terminates the client cluster when loading is complete, saving on EC2 usage costs.
+* EMR configures itself in minutes and automatically terminates the client cluster when loading is complete, saving on EC2 usage costs.
 * EMR manages the collection of logging/output/job latency across the entire cluster and publishes it back to S3
 
 ## Deployment Architecture
@@ -183,11 +183,11 @@ After the cluster is provisioned, it will move to the running state and begin ex
 
 ![alt text](doc/emr-job-running.png?raw=true "Running Cluster")
 
-Under the **Map/Reduce** section, there are a series of stats that can be refreshed as the job runs. EMR will chunk large files into tasks and create tasks for smaller files, then generate a **Map Tasks Remaining** graph which will burn down to zero as the ob progresses :
+Under the **Map/Reduce** section, there are a series of stats that can be refreshed as the job runs. EMR will chunk large files into tasks and create tasks for smaller files, then generate a **Map Tasks Remaining** graph which will burn down to zero as the job progresses :
 
 ![alt text](doc/emr-mapreduce-stats.png?raw=true "MapReduce Stats")
 
-At this time, you can also check that the target collection in MongoDB is receiving inserts. The [MongoDB Management Service](http://mms.mongodb.com) is a good way to confirm this, this is what the demo run looks like for a large MongoDB Cluster :
+At this time, you can also check that the target collection in MongoDB is receiving inserts. The [MongoDB Management Service](http://mms.mongodb.com) is a good way to confirm. This is what the demo run looks like for a large MongoDB Cluster :
 
 ![alt text](doc/mms-large-load.png?raw=true "Loading 500,000 docs per second")
 
@@ -210,6 +210,15 @@ Since the EMR job is run distributed across the cluster, each of the workers wri
 ### get_stderr / get_stdout
 
 Given a job ID (found in the *Summary:ID* section of the *Cluster Details* page, with the format *j-xxxxxxx*), these scripts will collect all and non-empty concatenate all non-empty stdout/err output from any of the task nodes. As a simple logging mechanism, the loader implementation writes informational messages to stdout and error details to stderr. Typically a call to **get_stderr.sh** which results in a no empty output file indicates a problem was encountered in at least one of the worker nodes.
+
+    ~/mrloader$ ./bin/get_stdout.sh j-2DPH1NW1UK0IU
+    ~/mrloader$ more j-2DPH1NW1UK0IU.stdout 
+    Connecting [5456fc85e4b03bb1bf0c9cd7] : mongodb://c3-2xl-2.mrloader.9833.mongodbdns.com:27017/demodb.mycoll
+    Connecting [5456fc85e4b05e7f758286ce] : mongodb://c3-2xl-2.mrloader.9833.mongodbdns.com:27017/demodb.mycoll
+    Connecting [5456fc86e4b0680b472d4a15] : mongodb://c3-2xl-2.mrloader.9833.mongodbdns.com:27017/demodb.mycoll
+    Connecting [5456fd90e4b07cb790abe202] : mongodb://c3-2xl-0.mrloader.9833.mongodbdns.com:27017/demodb.mycoll
+    Connecting [5456fe97e4b0a00ea932fc36] : mongodb://c3-2xl-2.mrloader.9833.mongodbdns.com:27017/demodb.mycoll
+    ...
 
 ### graph_output
 
@@ -238,13 +247,13 @@ By default, MrLoader will attempt to discover all MongoDB **mongos** instances i
     Adding discovered mongos : demo-2.mrloader.9833:27017
     Adding discovered mongos : demo-1.mrloader.9833:27017
 
-Note here that the discovered hostnames generally correspond to a "hostname" call on each of the mongos hosts. The hosts must be resolvable within the VPC by these names or the worker nodes will fail to connect to the cluster. In some circumstances, for example, "hostname" will return something like demo-0.mrloader.9833, however the host can only be resolved with the fully qualified version demo-0.mrloader.9833.mongodbdns.com. To resolve such issues, MrLoader has an optional argument to add a domain extension to the discovered hostnames as follows :
+Note here that the discovered hostnames generally correspond to a "hostname" call on each of the mongos hosts. The hosts must be resolvable within the VPC by these names or the worker nodes will fail to connect to the cluster. In some circumstances, for example, "hostname" will return something like *demo-0.mrloader.9833*, however the host can only be resolved with the fully qualified version *demo-0.mrloader.9833.mongodbdns.com*. To resolve such issues, MrLoader has an optional argument to add a domain extension to the discovered hostnames as follows :
 
     --mongos_uri mongodb://10.0.0.249/demodb.mycoll --mongos_domain mongodbdns.com
 
 If preferred, discovery can also be disabled and all mongos endpoints supplied in the URI as follows :
 
-   --mongos_uri mongodb://10.0.0.249,10.0.0.233/demodb.mycoll --no_discovery
+    --mongos_uri mongodb://10.0.0.249,10.0.0.233/demodb.mycoll --no_discovery
 
 With these arguments, only the two specified mongos endpoints will be used by the cluster.
 
