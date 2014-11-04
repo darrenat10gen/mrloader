@@ -259,6 +259,11 @@ With these arguments, only the two specified mongos endpoints will be used by th
 
 ## Custom Input Parsers
 
+At the core of the Map task that runs within the cluster, an instance of the [BSONGenerator interface](src/main/java/com/mongodb/mrloader/BSONGenerator.java) is used to convert a line from the input data into a DBObject instance that can be inserted into MongoDB. By default, an instance of [JSONParser](src/main/java/com/mongodb/mrloader/JSONParser.java) will be created, however it is easy to extend the list of implementations such that different input formats can be supported. Simply implement the [BSONGenerator interface](src/main/java/com/mongodb/mrloader/BSONGenerator.java) and package the class into the jar, then add the *--parser_class* argument as follows :
+
+    --parser_class com.mypackage.MyParser
+
+
 ## JAR Argument Reference
 
     mongos_uri      - URI for at least one mongos (or mongod for standalone/replica set)
